@@ -1,85 +1,126 @@
-# Empress Pokémon 2D · iOS 移植工程
+# Empress: Pokémon 2D · Unofficial iOS Port
 
-把《宝可梦竞技场2D》（Empress: Pokémon 2D Arena，玩家自制同人游戏）从安卓移植到 iOS 的工程。
-游戏本体为**纯 JavaScript**（Web 前端 + Node.js 服务端），移植采用**同构换壳**方案：
+[![Build](https://github.com/lcheng871118-glitch/Empress-iOS/actions/workflows/build-ios.yml/badge.svg)](https://github.com/lcheng871118-glitch/Empress-iOS/actions/workflows/build-ios.yml)
+[![Release](https://img.shields.io/github/v/release/lcheng871118-glitch/Empress-iOS)](https://github.com/lcheng871118-glitch/Empress-iOS/releases)
 
-- 安卓壳（Java + WebView + 内嵌 Node.js）→ iOS 壳（Swift + WKWebView + nodejs-mobile 内嵌 Node.js）
-- **游戏本体（client/ server/ node_modules/）一行不改**
+An unofficial iOS port of **[Empress: Pokémon 2D Arena](https://empress-pokemon-2d.itch.io)** (v0.4.1), the fan-made Pokémon battle game by **Omniscye**. The game runs as a local Node.js server inside the app, with a WKWebView rendering the original HTML5 client — **zero changes to the game code**.
 
-## 技术架构
+Works on **iOS 14+**, installable via **TrollStore** (recommended, no re-signing) or **AltStore** (free Apple ID, re-sign every 7 days).
 
-```
-┌─ 安卓壳（原版）─────────────┐      ┌─ iOS 壳（本工程）──────────────┐
-│ Java Activity (17KB)       │      │ Swift GameViewController      │
-│ WebView 加载 :3210          │      │ WKWebView 加载 :3210           │
-│ libnode.so (Node 运行时)    │      │ NodeMobile.framework (Node 18)│
-└──────────┬──────────────────┘      └──────────┬────────────────────┘
-           │ 游戏本体（共享，纯 JS）              │
-           ▼                                    ▼
-      server/index.cjs ── express + ws + @pkmn/sim
-      client/          ── Canvas 前端（HTML5）
-      node_modules/    ── express / ws / @pkmn/sim 等（纯 JS 依赖）
-```
+> Personal-learning port. Pokémon IP belongs to Nintendo / Game Freak / The Pokémon Company. The game is © its original author Omniscye.
 
-## 目录结构
+---
+
+## How it works
+
+The Android APK turned out to be a pure-JavaScript game: a 17 KB Java launcher + `libnode.so` + a WebView pointed at a local server (`http://127.0.0.1:3210`). The game itself (`game-data/`) is an HTML5 Canvas client plus a Node.js/Express server — zero native game logic.
+
+So the port is a **same-code wrapper swap**:
 
 ```
-├── game/                    # 游戏本体（从安卓 APK 的 assets/game.zip 解包，本地验证用）
-├── ios/
-│   ├── xcodegen.yml         # Xcode 工程定义（CI 用 XcodeGen 生成）
-│   ├── EmpressApp/          # iOS 壳源码（Swift + Bridging Header）
-│   │   ├── AppDelegate.swift
-│   │   ├── GameViewController.swift   # Node 启动 + WKWebView 容器
-│   │   ├── Bridging-Header.h          # 引用 NodeMobile.h
-│   │   ├── Info.plist                 # ATS 本地网络例外、横屏
-│   │   └── Assets.xcassets            # App 图标
-│   ├── game-data/           # 打包进 App 的游戏资源（构建时生成）
-│   └── node-mobile-dist/    # nodejs-mobile iOS xcframework（构建时下载）
-├── scripts/
-│   └── build-ios.sh         # 一键构建脚本（下载运行时→资源→生成工程→构建→打包 ipa）
-├── .github/workflows/
-│   └── build-ios.yml        # GitHub Actions 云构建（macOS runner）
-└── docs/
-    └── INSTALL.md           # Windows + AltStore 自签安装指南
+┌───────────────────────────────────────────────────────┐
+│  EmpressPokemon2D.app                                  │
+│  ├─ Swift shell (AppDelegate / GameViewController)      │
+│  ├─ NodeMobile.framework (nodejs-mobile v18.20.4)       │
+│  ├─ game-data/    (original server + client, untouched) │
+│  └─ WKWebView  →  http://127.0.0.1:3210                 │
+└───────────────────────────────────────────────────────┘
 ```
 
-## 关键版本
+## Features
 
-| 组件 | 版本 | 说明 |
-|---|---|---|
-| 游戏 | 0.4.1（验证版） | itch.io 最新为 1.0.0，流程通用 |
-| nodejs-mobile | v18.20.4 | 基于 Node 18.20.4，满足 express 5 要求 |
-| 部署目标 | iOS 14.0+ | iPhone 横屏 |
+- ✅ Full single-player campaign, team builder, real-time battles (same engine as Android)
+- ✅ Saves stored in the app's Documents folder (`empress-profile`)
+- ✅ Landscape-only, fullscreen
+- ✅ No re-signing for **TrollStore** installs
+- ✅ Cloud builds via **GitHub Actions** — no Mac needed
+- ✅ LAN browser version included for instant play (`启动局域网版.bat`)
 
-## 快速开始：局域网网页版（iPhone 立即能玩）
+## Quick start
 
-不需要 GitHub、不需要签名、不需要云构建——电脑开服务，iPhone 浏览器直接玩。
+**Option A — download the .ipa (easiest)**
 
-1. 双击 `启动局域网版.bat`（服务会自动检测并启动）
-2. iPhone 连**同一 Wi-Fi**，Safari 打开 `http://192.168.1.80:3210`
-3. 全功能游玩（剧情/组队/实时对战/存档自动保存到 `game-web/profile`）
-4. 想更接近 App：Safari → 分享 → 添加到主屏幕，图标化全屏启动
+1. Grab `Empress-Pokemon-2D-iOS-0.4.1.ipa` from the [Releases page](https://github.com/lcheng871118-glitch/Empress-iOS/releases).
+2. AirDrop / upload it to your iPhone.
+3. Open it with **TrollStore** → *Install* (see [INSTALL.md](docs/INSTALL.md)).
 
-> 电脑 IP 若变化（路由器重启等），在 cmd 执行 `ipconfig` 查看新 IP（IPv4 地址）。
-> 服务改动位于 `game-web/`（对原 `game/` 仅做了局域网访问放宽，不影响原版）。
+**Option B — build it yourself** → [BUILD.md](docs/BUILD.md)
 
-## iOS 原生 App（.ipa）构建方式
+## Install
 
-无 Mac 场景走 **GitHub Actions 云构建**：
+### TrollStore (recommended)
 
-1. 本仓库 push 到你的 GitHub
-2. 把 `game-data.zip`（游戏资源包）上传到仓库 **Releases**
-3. Actions → build-ios → **Run workflow**
-4. 下载产物 `.ipa` → AltStore 签名安装（详见 `docs/INSTALL.md`）
+1. Install [TrollStore](https://trollstore.app) on your device (requires a supported iOS version).
+2. Send the `.ipa` to your iPhone (AirDrop, cloud drive, ...).
+3. Open the `.ipa` with TrollStore → tap **Install**.
+4. Done — no re-signing, ever.
 
-有 Mac 的场景可直接本地执行：`bash scripts/build-ios.sh`（需 Xcode + XcodeGen）。
+> The IPA ships with JIT entitlements (`allow-jit`), which TrollStore preserves at install time, so the embedded Node engine starts in seconds.
 
-## 验证记录
+### AltStore (free Apple ID, re-sign every 7 days)
 
-- 本机（Windows / Node v22）启动 `node android-bootstrap.cjs`：
-  - `/api/health` → `{"ok":true,"name":"Empress: Pokémon 2D","version":"0.4.0"}`
-  - `/api/catalog` 返回全国图鉴 JSON；`/` 返回游戏前端 HTML ✓
+1. Install AltServer on a Mac/Windows PC (Windows needs iTunes + iCloud).
+2. Connect your iPhone, install AltStore via AltServer, sign in with a **throwaway Apple ID**.
+3. In AltStore → *My Apps* → **+** → pick the `.ipa`.
+4. First launch: Settings → General → VPN & Device Management → trust your Apple ID.
+5. Re-sign before expiry: AltStore → *Refresh All* (one tap; PC must be reachable).
 
-## 免责声明
+Full details → [INSTALL.md](docs/INSTALL.md)
 
-游戏为玩家自制的宝可梦同人作品，所有宝可梦 IP 归任天堂/Game Freak/The Pokémon Company 所有。本工程仅用于个人设备移植学习，不用于任何商业分发。
+## Build from source
+
+The CI workflow builds the `.ipa` in the cloud (macOS runner), so **no Mac is needed**:
+
+1. Fork / clone this repo.
+2. Upload your `game-data.zip` (game asset bundle, ~185 MB) to **Releases** — the workflow fetches the *latest* release's `game-data.zip`.
+3. Actions → **build-ios** → **Run workflow**.
+4. Download the produced `.ipa` artifact and install it.
+
+Local build (macOS with Xcode + XcodeGen): `bash scripts/build-ios.sh`.
+
+## Upgrading to a newer game version
+
+The author periodically releases new versions on itch.io:
+
+1. Download the new APK, extract `assets/game.zip` → repackage as `game-data.zip`.
+2. Replace the Release asset on GitHub.
+3. Re-run the workflow. Done.
+
+## Troubleshooting / FAQ
+
+| Symptom | Cause & fix |
+|---|---|
+| TrollStore: `ldid: operator(): No such file or directory` | **Symbolic links** inside `node_modules/.bin` break ldid's recursive signing. Fixed in the shipped IPA (`find ... -type l -delete` before packaging). |
+| Same ldid error even after symlink fix | Non-ASCII app name (`Pokémon`) → NFC/NFD mismatch between macOS zip and iOS APFS. Use a pure-ASCII `PRODUCT_NAME`. |
+| "游戏引擎启动失败" appears instantly (0 s) | Health check hits `Connection refused` immediately and exhausts retries while Node is still initializing. Fixed: JIT entitlements + socket-probe long-wait loop (up to 10 min). |
+| Node log: `Warning: disabling flag --expose_wasm ...` | Harmless V8 warning in jitless mode; doesn't affect the game. |
+| Actions fails downloading "releases/latest" | Unauthenticated curl on shared runner IPs is rate-limited. All Release API calls must send `Authorization: token ${{ secrets.GITHUB_TOKEN }}`. |
+| xcodegen: project format 77 unreadable | Old runners can't read Xcode 16 project files; use `runs-on: macos-15`. |
+
+## Project structure
+
+```
+├─ ios/
+│  ├─ EmpressApp/        # Swift shell: AppDelegate, GameViewController (Node boot + WKWebView), Info.plist
+│  ├─ entitlements.plist # JIT entitlements (kept by TrollStore)
+│  └─ project.yml        # XcodeGen config
+├─ scripts/
+│  ├─ build-ios.sh       # One-shot build: assets → xcodegen → xcodebuild → codesign → .ipa
+│  ├─ bootstrap-ios.cjs  # iOS server entry (repo version, replaces the one inside game-data)
+│  └─ ci-monitor.ps1     # Trigger + monitor GitHub Actions from Windows
+├─ .github/workflows/build-ios.yml  # Cloud build (macos-15 runner)
+├─ docs/INSTALL.md · docs/BUILD.md · docs/README.zh-CN.md
+└─ 启动局域网版.bat      # Instant LAN play: PC serves, iPhone Safari plays
+```
+
+## License & disclaimer
+
+- The **porting shell** (Swift sources, scripts, workflows, docs) is © 2026 lcheng871118-glitch. You may view, fork, build and use it on your own devices; **any modification or derivative release requires the author's prior consent** — see [LICENSE](LICENSE).
+- The **game** (`game-data/`) is © its original author **Omniscye** ([Empress: Pokémon 2D Arena on itch.io](https://empress-pokemon-2d.itch.io)), bundled here solely for personal learning. Do not redistribute it commercially.
+- All **Pokémon** IP belongs to Nintendo / Game Freak / The Pokémon Company.
+
+## Credits
+
+- **Omniscye** — original game
+- [nodejs-mobile](https://github.com/nodejs-mobile/nodejs-mobile) — Node.js runtime for iOS
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) — project generation

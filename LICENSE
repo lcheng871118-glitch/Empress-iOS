@@ -1,0 +1,41 @@
+# Empress-iOS 移植壳层许可协议
+# Empress-iOS Porting Shell License
+
+Copyright (c) 2026 lcheng871118-glitch
+
+本仓库中的**移植壳层**（包括但不限于 Swift 源码、构建脚本、GitHub Actions 工作流、
+bootstrap 启动脚本、文档）按以下条款授权：
+
+The **porting shell** in this repository (Swift sources, build scripts, GitHub
+Actions workflows, bootstrap entry, documentation) is licensed as follows:
+
+---
+
+## 中文
+
+1. **允许**：任何人可以自由地查看（view）、fork、构建（build），以及在个人设备上
+   安装和使用（install & use）本工程，无需额外授权。
+2. **修改需同意**：对本移植壳层进行**修改**、制作**衍生版本**，或将修改后的版本
+   **对外发布/分发**，必须**事先获得作者（lcheng871118-glitch）的书面同意**。
+3. **游戏本体**（`game-data/`，含 client、server、node_modules 等）版权归原作者
+   **Omniscye**（Empress: Pokémon 2D Arena）所有，随本仓库分发仅用于个人学习与
+   移植研究，禁止任何形式的商业再分发。
+4. **宝可梦相关 IP** 归任天堂 / Game Freak / The Pokémon Company 所有，本项目与
+   任天堂官方无任何关联，未获得任天堂授权。
+5. 本工程按"现状"提供，作者不对其可用性、安全性或任何后果承担责任。
+
+## English
+
+1. **Permitted**: anyone may freely view, fork, build, install and use this
+   project on their own devices, without further authorization.
+2. **Modification requires consent**: modifying the porting shell, creating
+   derivative works, or publicly distributing/releasing a modified version
+   requires the **prior written consent of the author (lcheng871118-glitch)**.
+3. The **game itself** (`game-data/`, including client, server, node_modules,
+   etc.) is © its original author **Omniscye** (Empress: Pokémon 2D Arena); it is
+   bundled here solely for personal learning and porting research. Any commercial
+   redistribution is prohibited.
+4. All **Pokémon-related IP** belongs to Nintendo / Game Freak / The Pokémon
+   Company. This project is not affiliated with or endorsed by Nintendo.
+5. This project is provided "AS IS", without warranty of any kind; the author is
+   not liable for any damages arising from its use.

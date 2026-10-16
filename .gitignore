@@ -9,3 +9,11 @@ ios/*.xcodeproj
 nodejs-mobile-ios.zip
 *.ipa
 *.zip
+
+.token.tmp
+
+# 本地临时产物
+ci-last-log.txt
+ipa-verify/
+ipa-extract/
+*.log
