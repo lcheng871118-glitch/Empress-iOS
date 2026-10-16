@@ -5,7 +5,8 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    # macos-15 自带 Xcode 16，可读取 xcodegen 2.46 生成的最新工程格式（77）
+    runs-on: macos-15
     timeout-minutes: 90
 
     steps:
