@@ -36,7 +36,7 @@ jobs:
         run: |
           bash scripts/build-ios.sh
         env:
-          GAME_VERSION: "0.4.1-zh"
+          GAME_VERSION: "0.4.1-zh2"
 
       - name: 上传 IPA 产物
         uses: actions/upload-artifact@v4
