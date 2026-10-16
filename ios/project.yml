@@ -19,7 +19,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.empress.pokemon2d
-        PRODUCT_NAME: Empress Pokémon 2D
+        # 必须为纯 ASCII：app 目录/二进制名含非 ASCII（é）时，
+        # iOS(APFS/NFD) 与 macOS zip(NFC) 的 Unicode 规范化不一致，
+        # 会导致 TrollStore 的 ldid 递归签名报 "No such file or directory"。
+        # 桌面显示名由 Info.plist 的 CFBundleDisplayName 控制，不受影响。
+        PRODUCT_NAME: EmpressPokemon2D
         INFOPLIST_FILE: EmpressApp/Info.plist
         SWIFT_VERSION: "5.0"
         IPHONEOS_DEPLOYMENT_TARGET: "14.0"
