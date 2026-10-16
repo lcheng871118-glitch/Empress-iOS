@@ -76,11 +76,14 @@ rm -rf Payload Empress-Pokemon-2D-iOS-${GAME_VERSION}.ipa
 mkdir -p Payload
 cp -R "$APP_PATH" Payload/
 
+# 实际 .app 名来自 PRODUCT_NAME（含空格），统一用变量引用
+APP_IN_PAYLOAD="Payload/$(basename "$APP_PATH")"
+
 # 先对嵌入的动态库签名，再对 App 主体签名（ad-hoc 占位签名）
-if [ -d "Payload/EmpressApp.app/Frameworks/NodeMobile.framework" ]; then
-  codesign --force --sign - "Payload/EmpressApp.app/Frameworks/NodeMobile.framework"
+if [ -d "$APP_IN_PAYLOAD/Frameworks/NodeMobile.framework" ]; then
+  codesign --force --sign - "$APP_IN_PAYLOAD/Frameworks/NodeMobile.framework"
 fi
-codesign --force --sign - "Payload/EmpressApp.app"
+codesign --force --sign - "$APP_IN_PAYLOAD"
 
 zip -qry "Empress-Pokemon-2D-iOS-${GAME_VERSION}.ipa" Payload
 rm -rf Payload
