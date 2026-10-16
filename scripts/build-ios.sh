@@ -61,9 +61,11 @@ xcodebuild -project EmpressApp.xcodeproj \
   CODE_SIGNING_REQUIRED=NO \
   build
 
-APP_PATH="$IOS_DIR/build/Build/Products/Release-iphoneos/EmpressApp.app"
+APP_DIR="$IOS_DIR/build/Build/Products/Release-iphoneos"
+# PRODUCT_NAME 含空格（"Empress Pokémon 2D"），实际产物名不等于 target 名，用通配符定位
+APP_PATH=$(find "$APP_DIR" -maxdepth 1 -name "*.app" 2>/dev/null | head -1)
 if [ ! -d "$APP_PATH" ]; then
-  echo "ERROR: 构建产物不存在 $APP_PATH" >&2
+  echo "ERROR: 构建产物不存在 $APP_DIR" >&2
   exit 1
 fi
 echo ">> 构建完成：$APP_PATH"
