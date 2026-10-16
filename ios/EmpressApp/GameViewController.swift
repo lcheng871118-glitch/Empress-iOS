@@ -4,17 +4,23 @@ import WebKit
 /// 启动内嵌 Node.js 运行时（nodejs-mobile 的 node_start），在独立线程中运行游戏服务端。
 final class NodeRunner {
 
+    /// 供界面诊断：存档目录绝对路径
+    static var saveDirPath = ""
+    /// 供界面诊断：node_start 返回码（nil = 尚未返回/仍在运行）
+    static var nodeExitCode: Int32? = nil
+
     /// 阻塞调用 node_start 并常驻事件循环，必须在后台线程执行。
     /// - Parameters:
     ///   - gameDir: 打包进 App 的 game-data 目录绝对路径
     ///   - saveDir: 存档目录绝对路径（App Documents 下）
     static func start(gameDir: String, saveDir: String) {
+        saveDirPath = saveDir
         let script = gameDir + "/android-bootstrap.cjs"
         let arguments = ["node", script, gameDir, saveDir]
 
         // 重定向 Node 的 stdout/stderr 到存档目录日志文件：
         // iOS 上 Node 的 console 默认无处可去，启动失败原因会静默丢失，
-        // 写文件后可通过 Documents/empress-node.log 直接定位。
+        // 写文件后可通过存档目录/empress-node.log 直接定位。
         do {
             try FileManager.default.createDirectory(atPath: saveDir, withIntermediateDirectories: true)
             // iOS 进程默认 cwd 是只读根目录，若服务端存在相对路径写操作会直接崩溃；
@@ -37,6 +43,7 @@ final class NodeRunner {
             var argv = cArgs
             let argc = Int32(cArgs.count)
             let ret = node_start(argc, &argv)
+            nodeExitCode = ret
             NSLog("[Empress] node_start exited with code %d", ret)
         }
     }
@@ -80,11 +87,14 @@ final class GameViewController: UIViewController {
         statusLabel.textColor = .white
         statusLabel.textAlignment = .center
         statusLabel.font = UIFont.systemFont(ofSize: 17, weight: .medium)
+        statusLabel.numberOfLines = 0
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(statusLabel)
         NSLayoutConstraint.activate([
             statusLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            statusLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            statusLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            statusLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24)
         ])
     }
 
@@ -113,7 +123,7 @@ final class GameViewController: UIViewController {
 
     private func waitForServer(attemptsLeft: Int, completion: @escaping () -> Void) {
         guard attemptsLeft > 0 else {
-            statusLabel.text = "游戏引擎启动失败"
+            showDiagnostics()
             return
         }
         let url = URL(string: "http://127.0.0.1:3210/api/health")!
@@ -132,6 +142,36 @@ final class GameViewController: UIViewController {
                 }
             }
         }.resume()
+    }
+
+    /// 健康检查超时：把引擎启动的关键诊断直接显示在界面上，便于截图定位。
+    private func showDiagnostics() {
+        statusLabel.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        statusLabel.textAlignment = .left
+
+        var lines = ["游戏引擎启动失败", ""]
+        let gameDir = Bundle.main.resourcePath! + "/game-data"
+        let fm = FileManager.default
+        lines.append("app 包: " + (Bundle.main.resourcePath ?? "?"))
+        lines.append("game-data: " + (fm.fileExists(atPath: gameDir) ? "存在" : "不存在"))
+        lines.append("server: " + (fm.fileExists(atPath: gameDir + "/server/index.cjs") ? "存在" : "不存在"))
+        lines.append("client: " + (fm.fileExists(atPath: gameDir + "/client/index.html") ? "存在" : "不存在"))
+        let saveDir = NodeRunner.saveDirPath
+        lines.append("存档目录: " + (fm.fileExists(atPath: saveDir) ? "存在" : "不存在"))
+        let logPath = saveDir + "/empress-node.log"
+        if let content = try? String(contentsOfFile: logPath, encoding: .utf8), !content.isEmpty {
+            lines.append("node 日志(" + String(content.count) + " 字符):")
+            let tail = content.suffix(600)
+            lines.append(String(tail))
+        } else {
+            lines.append("node 日志: 不存在或为空")
+        }
+        if let code = NodeRunner.nodeExitCode {
+            lines.append("node_start 退出码: " + String(code))
+        } else {
+            lines.append("node_start: 尚未返回（仍在初始化）")
+        }
+        statusLabel.text = lines.joined(separator: "\n")
     }
 
     private func loadGame() {
