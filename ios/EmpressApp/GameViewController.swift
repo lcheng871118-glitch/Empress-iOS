@@ -12,6 +12,24 @@ final class NodeRunner {
         let script = gameDir + "/android-bootstrap.cjs"
         let arguments = ["node", script, gameDir, saveDir]
 
+        // 重定向 Node 的 stdout/stderr 到存档目录日志文件：
+        // iOS 上 Node 的 console 默认无处可去，启动失败原因会静默丢失，
+        // 写文件后可通过 Documents/empress-node.log 直接定位。
+        do {
+            try FileManager.default.createDirectory(atPath: saveDir, withIntermediateDirectories: true)
+            // iOS 进程默认 cwd 是只读根目录，若服务端存在相对路径写操作会直接崩溃；
+            // 切到可写存档目录兜底（所有关键路径均为绝对路径，不受影响）。
+            chdir(saveDir)
+            let logPath = saveDir + "/empress-node.log"
+            if let file = fopen(logPath, "w") {
+                dup2(fileno(file), fileno(stdout))
+                dup2(fileno(file), fileno(stderr))
+                fflush(file)
+            }
+        } catch {
+            NSLog("[Empress] cannot create saveDir: %@", error.localizedDescription)
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
             let cArgs = arguments.map { strdup($0) }
             defer { cArgs.forEach { free($0) } }
