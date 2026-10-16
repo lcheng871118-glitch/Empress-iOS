@@ -1,0 +1,43 @@
+name: build-ios
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 90
+
+    steps:
+      - name: 检出工程代码
+        uses: actions/checkout@v4
+
+      - name: 下载游戏资源包（从仓库 Release 的最新 game-data.zip）
+        run: |
+          set -euxo pipefail
+          API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
+          ASSET_URL=$(curl -s "$API_URL" | jq -r '.assets[] | select(.name == "game-data.zip") | .url')
+          if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
+            echo "ERROR: 仓库 Release 中找不到 game-data.zip，请先上传" >&2
+            exit 1
+          fi
+          curl -sL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/game-data.zip "$ASSET_URL"
+          rm -rf game
+          mkdir -p game
+          unzip -q /tmp/game-data.zip -d game
+          echo ">> game 本体就绪：$(ls game | tr '\n' ' ')"
+
+      - name: 执行 iOS 构建脚本
+        run: |
+          bash scripts/build-ios.sh
+        env:
+          GAME_VERSION: "0.4.1"
+
+      - name: 上传 IPA 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Empress-Pokemon-2D-iOS-ipa
+          path: ios/Empress-Pokemon-2D-iOS-*.ipa
+          if-no-files-found: error

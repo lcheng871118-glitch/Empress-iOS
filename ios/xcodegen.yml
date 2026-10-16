@@ -1,0 +1,38 @@
+name: EmpressApp
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "14.0"
+
+targets:
+  EmpressApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: EmpressApp
+      - path: game-data
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.empress.pokemon2d
+        PRODUCT_NAME: Empress Pokémon 2D
+        INFOPLIST_FILE: EmpressApp/Info.plist
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_BITCODE: "NO"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/node-mobile-dist"
+        HEADER_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/node-mobile-dist/NodeMobile.xcframework/ios-arm64/NodeMobile.framework/Headers"
+        SWIFT_OBJC_BRIDGING_HEADER: EmpressApp/Bridging-Header.h
+        OTHER_LDFLAGS:
+          - "-framework"
+          - "NodeMobile"
+          - "-lc++"
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+    dependencies:
+      - framework: node-mobile-dist/NodeMobile.xcframework
+        embed: true

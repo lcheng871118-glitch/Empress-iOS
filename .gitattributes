@@ -1,0 +1,7 @@
+# 构建脚本必须保持 LF，防止 Windows CRLF 破坏 shebang
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.swift text eol=lf
+*.plist text eol=lf
+*.cjs text eol=lf
