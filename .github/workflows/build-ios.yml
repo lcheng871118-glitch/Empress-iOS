@@ -28,7 +28,9 @@ jobs:
           rm -rf game
           mkdir -p game
           unzip -q /tmp/game-data.zip -d game
-          echo ">> game 本体就绪：$(ls game | tr '\n' ' ')"
+          # 用仓库版 bootstrap 覆盖资源包内的旧版（game 本体不进 git，bootstrap 例外）
+          cp "$GITHUB_WORKSPACE/scripts/bootstrap-ios.cjs" game/android-bootstrap.cjs
+          echo ">> game 本体就绪：$(ls game | tr '\n' ' ')（bootstrap 已替换为仓库版）"
 
       - name: 执行 iOS 构建脚本
         run: |
