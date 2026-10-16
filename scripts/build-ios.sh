@@ -42,6 +42,12 @@ if [ -f "$ROOT_DIR/game/LICENSE.html" ]; then
 fi
 echo ">> game-data 资源大小：$(du -sh "$GAME_DATA" | cut -f1)"
 
+# 清理符号链接（node_modules/.bin 等处）：TrollStore/AltStore 的 ldid 递归签名
+# 会因符号链接指向不存在而失败；游戏运行时 require 不依赖任何符号链接
+SYMLINK_COUNT=$(find "$GAME_DATA" -type l | wc -l | tr -d ' ')
+find "$GAME_DATA" -type l -delete
+echo ">> 已清理符号链接：${SYMLINK_COUNT} 个"
+
 # ---------- 3. 生成 Xcode 工程 ----------
 if ! command -v xcodegen >/dev/null 2>&1; then
   echo ">> 安装 xcodegen"
