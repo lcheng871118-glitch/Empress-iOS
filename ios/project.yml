@@ -1,6 +1,9 @@
 name: EmpressApp
 options:
   createIntermediateGroups: true
+  # 强制生成 Xcode 12+ 兼容的工程格式（56），避免 xcodegen 默认输出
+  # Xcode 16 格式（77）导致 macos-14/Xcode 15.4 无法读取
+  objectVersion: 56
   deploymentTarget:
     iOS: "14.0"
 
