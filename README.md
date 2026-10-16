@@ -51,7 +51,19 @@
 | nodejs-mobile | v18.20.4 | 基于 Node 18.20.4，满足 express 5 要求 |
 | 部署目标 | iOS 14.0+ | iPhone 横屏 |
 
-## 构建方式
+## 快速开始：局域网网页版（iPhone 立即能玩）
+
+不需要 GitHub、不需要签名、不需要云构建——电脑开服务，iPhone 浏览器直接玩。
+
+1. 双击 `启动局域网版.bat`（服务会自动检测并启动）
+2. iPhone 连**同一 Wi-Fi**，Safari 打开 `http://192.168.1.80:3210`
+3. 全功能游玩（剧情/组队/实时对战/存档自动保存到 `game-web/profile`）
+4. 想更接近 App：Safari → 分享 → 添加到主屏幕，图标化全屏启动
+
+> 电脑 IP 若变化（路由器重启等），在 cmd 执行 `ipconfig` 查看新 IP（IPv4 地址）。
+> 服务改动位于 `game-web/`（对原 `game/` 仅做了局域网访问放宽，不影响原版）。
+
+## iOS 原生 App（.ipa）构建方式
 
 无 Mac 场景走 **GitHub Actions 云构建**：
 

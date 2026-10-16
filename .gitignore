@@ -1,5 +1,6 @@
 # 忽略本地构建产物与大型资源（game 本体不进 git，通过 Release asset 分发）
 game/
+game-web/
 ios/game-data/
 ios/node-mobile-dist/
 ios/build/
