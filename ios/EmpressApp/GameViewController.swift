@@ -126,7 +126,6 @@ final class GameViewController: UIViewController {
         ])
     }
 
-    private func waitForServer(attemptsLeft: Int, completion: @escaping () -> Void) {
     /// 就绪等待：socket 探测为主（拒绝≠失败，服务端可能稍后就绪），
     /// 每轮约 4~5s，最多 120 轮 ≈ 10 分钟；TCP 通后再用 /api/health 确认。
     private func waitForServer(attemptsLeft: Int, completion: @escaping () -> Void) {
