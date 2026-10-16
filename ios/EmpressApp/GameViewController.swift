@@ -127,14 +127,35 @@ final class GameViewController: UIViewController {
     }
 
     private func waitForServer(attemptsLeft: Int, completion: @escaping () -> Void) {
-        guard attemptsLeft > 0 else {
-            showDiagnostics()
+    /// 就绪等待：socket 探测为主（拒绝≠失败，服务端可能稍后就绪），
+    /// 每轮约 4~5s，最多 120 轮 ≈ 10 分钟；TCP 通后再用 /api/health 确认。
+    private func waitForServer(attemptsLeft: Int, completion: @escaping () -> Void) {
+        if attemptsLeft <= 0 {
+            DispatchQueue.main.async { self.showDiagnostics() }
             return
         }
+        let waited = Int(Date().timeIntervalSince(NodeRunner.startTime))
+        DispatchQueue.main.async {
+            self.statusLabel.text = "启动游戏引擎… 已等待 \(waited) 秒"
+        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let probe = self.tcpProbe(port: 3210, timeout: 2)
+            if probe.hasPrefix("端口可达") {
+                self.confirmHealth(attemptsLeft: attemptsLeft, completion: completion)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.waitForServer(attemptsLeft: attemptsLeft - 1, completion: completion)
+                }
+            }
+        }
+    }
+
+    /// TCP 通后，用 HTTP /api/health 做最终确认；不通过则回到等待循环。
+    private func confirmHealth(attemptsLeft: Int, completion: @escaping () -> Void) {
         let url = URL(string: "http://127.0.0.1:3210/api/health")!
         var request = URLRequest(url: url)
-        request.timeoutInterval = 2
-
+        request.timeoutInterval = 3
         URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
             guard let self = self else { return }
             if let error = error {
@@ -145,7 +166,7 @@ final class GameViewController: UIViewController {
                obj["ok"] as? Bool == true {
                 DispatchQueue.main.async { completion() }
             } else {
-                DispatchQueue.main.async {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     self.waitForServer(attemptsLeft: attemptsLeft - 1, completion: completion)
                 }
             }

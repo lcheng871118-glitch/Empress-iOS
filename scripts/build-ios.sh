@@ -89,7 +89,9 @@ APP_IN_PAYLOAD="Payload/$(basename "$APP_PATH")"
 if [ -d "$APP_IN_PAYLOAD/Frameworks/NodeMobile.framework" ]; then
   codesign --force --sign - "$APP_IN_PAYLOAD/Frameworks/NodeMobile.framework"
 fi
-codesign --force --sign - "$APP_IN_PAYLOAD"
+# 注入 JIT 等 entitlements：TrollStore 安装时会提取并保留，V8 得以用 JIT，
+# 避免 jitless 模式下 Node 初始化过慢/挂起
+codesign --force --sign - --entitlements "$IOS_DIR/entitlements.plist" "$APP_IN_PAYLOAD"
 
 zip -qry "Empress-Pokemon-2D-iOS-${GAME_VERSION}.ipa" Payload
 rm -rf Payload
