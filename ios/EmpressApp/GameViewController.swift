@@ -8,6 +8,10 @@ final class NodeRunner {
     static var saveDirPath = ""
     /// 供界面诊断：node_start 返回码（nil = 尚未返回/仍在运行）
     static var nodeExitCode: Int32? = nil
+    /// 供界面诊断：引擎启动时间戳
+    static var startTime = Date()
+    /// 供界面诊断：健康检查最近一次错误描述
+    static var lastHealthError: String? = nil
 
     /// 阻塞调用 node_start 并常驻事件循环，必须在后台线程执行。
     /// - Parameters:
@@ -15,6 +19,7 @@ final class NodeRunner {
     ///   - saveDir: 存档目录绝对路径（App Documents 下）
     static func start(gameDir: String, saveDir: String) {
         saveDirPath = saveDir
+        startTime = Date()
         let script = gameDir + "/android-bootstrap.cjs"
         let arguments = ["node", script, gameDir, saveDir]
 
@@ -130,8 +135,11 @@ final class GameViewController: UIViewController {
         var request = URLRequest(url: url)
         request.timeoutInterval = 2
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
             guard let self = self else { return }
+            if let error = error {
+                NodeRunner.lastHealthError = error.localizedDescription
+            }
             if let data = data,
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                obj["ok"] as? Bool == true {
@@ -144,12 +152,51 @@ final class GameViewController: UIViewController {
         }.resume()
     }
 
+    /// 纯 socket 直连探测 127.0.0.1:port（绕开 URLSession/ATS，判断 server 是否真的在监听）
+    private func tcpProbe(port: Int, timeout: Double) -> String {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = in_port_t(port).bigEndian
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return "socket 创建失败" }
+        defer { close(fd) }
+        var flags = fcntl(fd, F_GETFL, 0)
+        _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
+        let rc = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sp in
+                connect(fd, sp, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        if rc == 0 { return "端口可达(已连接)" }
+        if errno != EINPROGRESS {
+            let e = String(cString: strerror(errno))
+            return "连接被拒绝: " + e
+        }
+        var waited: Double = 0
+        while waited < timeout {
+            usleep(200_000)
+            waited += 0.2
+            var err: Int32 = 0
+            var errLen = socklen_t(MemoryLayout<Int32>.size)
+            let g = getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &errLen)
+            if g == 0 && err == 0 { return "端口可达(已连接)" }
+            if g == 0 && err != 0 {
+                let e = String(cString: strerror(err))
+                return "连接被拒绝: " + e
+            }
+        }
+        return "端口不可达(超时)"
+    }
+
     /// 健康检查超时：把引擎启动的关键诊断直接显示在界面上，便于截图定位。
     private func showDiagnostics() {
         statusLabel.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         statusLabel.textAlignment = .left
 
         var lines = ["游戏引擎启动失败", ""]
+        let elapsed = Int(Date().timeIntervalSince(NodeRunner.startTime))
+        lines.append("已等待: " + String(elapsed) + " 秒")
         let gameDir = Bundle.main.resourcePath! + "/game-data"
         let fm = FileManager.default
         lines.append("app 包: " + (Bundle.main.resourcePath ?? "?"))
@@ -158,6 +205,10 @@ final class GameViewController: UIViewController {
         lines.append("client: " + (fm.fileExists(atPath: gameDir + "/client/index.html") ? "存在" : "不存在"))
         let saveDir = NodeRunner.saveDirPath
         lines.append("存档目录: " + (fm.fileExists(atPath: saveDir) ? "存在" : "不存在"))
+        lines.append("socket探测 3210: " + tcpProbe(port: 3210, timeout: 3))
+        if let e = NodeRunner.lastHealthError {
+            lines.append("健康检查错误: " + e)
+        }
         let logPath = saveDir + "/empress-node.log"
         if let content = try? String(contentsOfFile: logPath, encoding: .utf8), !content.isEmpty {
             lines.append("node 日志(" + String(content.count) + " 字符):")
